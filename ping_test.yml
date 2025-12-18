@@ -1,0 +1,8 @@
+---
+- name: "Linux Server Connectivity Test (Ping)"
+  hosts: all
+  gather_facts: no  # Disable fact gathering for faster execution when only testing connectivity
+
+  tasks:
+    - name: "Ping target servers"
+      ansible.builtin.ping:

@@ -1,0 +1,21 @@
+---
+- name: "Ubuntu Server APT Update and Upgrade"
+  hosts: all
+  become: yes  # Requires sudo privileges for apt operations
+  gather_facts: yes  # Gather facts to check OS version if needed
+
+  tasks:
+    - name: "Update apt package cache"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600  # Cache valid for 1 hour
+
+    - name: "Perform dist-upgrade (upgrade all packages)"
+      ansible.builtin.apt:
+        upgrade: dist
+
+    - name: "Remove automatically installed packages that are no longer needed"
+      ansible.builtin.apt:
+        autoremove: yes
+        autoclean: yes
+
