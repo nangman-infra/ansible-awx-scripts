@@ -3,6 +3,13 @@
   hosts: all
   become: yes  # Requires sudo privileges for dnf operations
   gather_facts: yes  # Gather facts to check OS version if needed
+  vars:
+    # Use pipelining to avoid SFTP/SCP transfer warnings
+    ansible_pipelining: yes
+    # Disable SSH connection transfer method warnings
+    ansible_ssh_transfer_method: piped
+    # Note: For Python interpreter warnings, set ansible_python_interpreter
+    # in AWX inventory variables (e.g., /usr/bin/python3) per host/group
 
   tasks:
     - name: "Update dnf package cache"
