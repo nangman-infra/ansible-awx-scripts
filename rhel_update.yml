@@ -8,7 +8,6 @@
     - name: "Update dnf package cache"
       ansible.builtin.dnf:
         update_cache: yes
-        cache_valid_time: 3600  # Cache valid for 1 hour
 
     - name: "Upgrade all packages to latest version"
       ansible.builtin.dnf:
