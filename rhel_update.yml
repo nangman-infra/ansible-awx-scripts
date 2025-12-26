@@ -1,0 +1,26 @@
+---
+- name: "RHEL Server DNF Update and Upgrade"
+  hosts: all
+  become: yes  # Requires sudo privileges for dnf operations
+  gather_facts: yes  # Gather facts to check OS version if needed
+
+  tasks:
+    - name: "Update dnf package cache"
+      ansible.builtin.dnf:
+        update_cache: yes
+        cache_valid_time: 3600  # Cache valid for 1 hour
+
+    - name: "Upgrade all packages to latest version"
+      ansible.builtin.dnf:
+        name: '*'
+        state: latest
+
+    - name: "Remove automatically installed packages that are no longer needed"
+      ansible.builtin.dnf:
+        autoremove: yes
+
+    - name: "Clean dnf package cache"
+      ansible.builtin.command:
+        cmd: dnf clean all
+      changed_when: false  # Cache cleaning doesn't change system state
+
