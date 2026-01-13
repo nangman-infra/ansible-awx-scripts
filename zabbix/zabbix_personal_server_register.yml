@@ -1,0 +1,20 @@
+---
+- name: Zabbix Agent 2 자동 배포 및 설정 (Active 모드)
+  hosts: all
+  become: yes
+  # AWX에서 실행 시 각 작업의 결과가 상세히 나오도록 설정
+  gather_facts: yes 
+
+  tasks:
+    - name: Zabbix 설치 스크립트 실행 (zabbix_personal_server_setting.sh)      
+      script: zabbix_personal_server_setting.sh
+
+    - name: 에이전트 실행 상태 확인
+      systemd:
+        name: zabbix-agent2
+        state: started
+      register: agent_status
+
+    - name: 설치 결과 출력
+      debug:
+        msg: "서버 {{ ansible_hostname }} 에 Zabbix 에이전트 설치가 완료되었습니다."
