@@ -1,5 +1,5 @@
-
- name: ClamAV
+---
+- name: ClamAV
   hosts: all
   become: yes
 
@@ -45,5 +45,3 @@
     - name: 결과 값
       shell: "crontab -l | grep ClamAV"
       register: cron_status
-
-    
