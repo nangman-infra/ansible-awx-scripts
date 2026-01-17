@@ -17,6 +17,20 @@
         name: [clamav, clamd, clamav-update]
         state: present
       when: ansible_os_family == "RedHat"
+      
+    - name: ClamAV directory 확인
+      group:
+        name: clamav
+        state: present
+
+    - name: ClamAV user확인
+      user:
+        name: clamav
+        group: clamav
+        system: yes
+        create_home: no
+        shell: /sbin/nologin
+        state: present
 
     # 2.  DB 업데이트 설정해보기
     - name: 서비스 상태 확인하고 시작하기
