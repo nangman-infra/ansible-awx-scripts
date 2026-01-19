@@ -14,6 +14,7 @@
         mode: '0755'
       delegate_to: localhost
       run_once: true
+      become: no
 
     # 각 서버 로그 파일 긁어 오기
     - name: 로그 파일 긁어 오기
@@ -21,6 +22,7 @@
         src: /var/log/clamav/daily_scan.log
         dest: "{{ storage_path }}/{{ today }}/{{ inventory_hostname }}_scan.log"
         flat: yes
+        become: yes
 
     # 요약한 리포트 출력
     - name: 스캔 결과 요약
@@ -28,11 +30,13 @@
       delegate_to: localhost
       run_once: true
       register: scan_result
+      become: no
 
     - name: 요약 리포트 
       debug:
         msg: "{{ scan_result.stdout_lines }}"
       run_once: true
+      
 
     # 4. 30일 지나면 삭제
     - name: 30일 지나면 오래된 순으로 삭제
@@ -40,3 +44,4 @@
       delegate_to: localhost
       run_once: true
       ignore_errors: yes
+      become: no
