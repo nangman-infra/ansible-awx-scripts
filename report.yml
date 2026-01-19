@@ -1,0 +1,42 @@
+---
+- name: ClamAV 총집합(~30)
+  hosts: all
+  become: yes
+  vars:
+    storage_path: "/var/lib/awx/projects/clamav_reports"
+    today: "{{ ansible_date_time.date }}"
+
+  tasks:
+    - name: AWX 폴더 생성
+      file:
+        path: "{{ storage_path }}/{{ today }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    # 각 서버 로그 파일 긁어 오기
+    - name: 로그 파일 긁어 오기
+      fetch:
+        src: /var/log/clamav/daily_scan.log
+        dest: "{{ storage_path }}/{{ today }}/{{ inventory_hostname }}_scan.log"
+        flat: yes
+
+    # 요약한 리포트 출력
+    - name: 스캔 결과 요약
+      shell: "grep -H 'Infected files' {{ storage_path }}/{{ today }}/*.log"
+      delegate_to: localhost
+      run_once: true
+      register: scan_result
+
+    - name: 요약 리포트 
+      debug:
+        msg: "{{ scan_result.stdout_lines }}"
+      run_once: true
+
+    # 4. 30일 지나면 삭제
+    - name: 30일 지나면 오래된 순으로 삭제
+      shell: "find {{ storage_path }} -maxdepth 1 -type d -mtime +30 -exec rm -rf {} \\;"
+      delegate_to: localhost
+      run_once: true
+      ignore_errors: yes
