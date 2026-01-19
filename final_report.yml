@@ -1,0 +1,16 @@
+---
+- name: 서버 리포트 총집합
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    storage_path: "/var/lib/awx/projects/clamav_reports"
+    today: "{{ ansible_date_time.date }}"
+
+  tasks:
+    - name:  로그 요약 
+      shell: "grep -H 'Infected files' {{ storage_path }}/{{ today }}/*.log"
+      register: final_result
+
+    - name: 결과 레포트
+      debug:
+        msg: "{{ result.stdout_lines }}"
