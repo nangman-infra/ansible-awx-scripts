@@ -1,61 +1,60 @@
 ---
-- name: ClamAV
+- name: ClamAV teleport설치 및 log lotate 설정(30일)
   hosts: all
   become: yes
 
   tasks:
-    # (dnf/apt)별로 패키지 알아서 설치
-    - name: ClamAV Install (ubuntu)
+    #  ClamAV 설치
+    - name: ClamAV Install (Ubuntu)
       apt:
         name: [clamav, clamav-daemon]
         state: present
         update_cache: yes
       when: ansible_os_family == "Debian"
 
-    - name: ClamAV 설치(rhel)
+    - name: ClamAV Install (RHEL)
       dnf:
         name: [clamav, clamd, clamav-update]
         state: present
       when: ansible_os_family == "RedHat"
-      
-    - name: ClamAV directory 확인
-      group:
-        name: clamav
-        state: present
 
-    - name: ClamAV user확인
-      user:
-        name: clamav
-        group: clamav
-        system: yes
-        create_home: no
-        shell: /sbin/nologin
-        state: present
-
-    # 2.  DB 업데이트 설정해보기
-    - name: 서비스 상태 확인하고 시작하기
+    #  바이러스 관련 db 업데이트 설정
+    - name: Freshclam 가동
       service:
-        name: "{{ (ansible_os_family == 'RedHat') | ternary('clamav-freshclam', 'clamav-freshclam') }}"
+        name: clamav-freshclam
         state: started
         enabled: yes
 
-    # 3. 스캔 결과를 리포트로 받기
-    - name: 스캔 리포트
+    #  로그 로테이트 설정 (최대 30일까지 압축되게 설정)
+    - name: logroate
+      copy:
+        dest: /etc/logrotate.d/clamav
+        content: |
+          /var/log/clamav/daily_scan.log {
+              daily
+              rotate 30
+              compress
+              delaycompress
+              missingok
+              not_if_empty
+              create 0660 clamav clamav
+          }
+
+    #  스캔 로그 
+    - name: 스캔 로그 저장 파일
       file:
         path: /var/log/clamav
         state: directory
         owner: clamav
-        mode: '0755'
+        group: clamav
+        mode: '0750'
 
-    # 4. 03시에 자동스캔
-    - name: 크론태브로 03시에 자동스캔
+    #  03시에 자동 스캔
+    - name: 03시 자동 스캔
       cron:
-        name: "Daily ClamAV Scan"
+        name: "Daily Scan Result"
         minute: "0"
         hour: "3"
         job: "/usr/bin/clamscan -r / --exclude-dir=/sys --exclude-dir=/proc --exclude-dir=/dev --quiet --log=/var/log/clamav/daily_scan.log"
 
-    # 5. result
-    - name: 결과 값
-      shell: "crontab -l | grep ClamAV"
-      register: cron_status
+    
