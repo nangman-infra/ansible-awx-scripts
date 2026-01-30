@@ -15,6 +15,7 @@
       delegate_to: localhost
       run_once: true
       become: yes
+      become_meethod: su
 
     # 각 서버 로그 파일 긁어 오기
     - name: 로그 파일 긁어 오기
