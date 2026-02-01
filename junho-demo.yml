@@ -8,7 +8,4 @@
         upgrade: dist
         update_cache: yes
 
-    - name: Remove unused packages and cleanup
-      apt:
-        autoremove: yes
-        purge: yes
+   
