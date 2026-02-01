@@ -1,0 +1,14 @@
+---
+- name: Ubuntu Server Update and Cleanup
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache and upgrade all packages
+      apt:
+        upgrade: dist
+        update_cache: yes
+
+    - name: Remove unused packages and cleanup
+      apt:
+        autoremove: yes
+        purge: yes
