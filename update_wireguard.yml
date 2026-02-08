@@ -1,0 +1,11 @@
+---
+- name: Update WireGuard AllowedIPs
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Update AllowedIPs from /16 to /23
+      replace:
+        path: /etc/wireguard/wg0.conf
+        regexp: 'AllowedIPs = 172.16.0.0/16'
+        replace: 'AllowedIPs = 172.16.0.0/23'
