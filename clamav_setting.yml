@@ -49,12 +49,21 @@
         group: clamav
         mode: '0750'
 
-    #  03시에 자동 스캔
-    - name: 03시 자동 스캔
+   # 03시 자동 스캔 (clamDscan 
+    - name: 03시 clamdscan 자동 스캔 
       cron:
         name: "Daily Scan Result"
         minute: "0"
         hour: "3"
-        job: "/usr/bin/clamscan -r / --exclude-dir=/sys --exclude-dir=/proc --exclude-dir=/dev --quiet --log=/var/log/clamav/daily_scan.log"
-
+        job: >
+          nice -n 19 ionice -c 3 /usr/bin/clamdscan 
+          --multiscan 
+          --fdpass 
+          --quiet 
+          --log=/var/log/clamav/daily_scan.log 
+          --exclude-dir=/sys 
+          --exclude-dir=/proc 
+          --exclude-dir=/dev 
+          --exclude-dir=/var/lib/docker 
+          /
     
