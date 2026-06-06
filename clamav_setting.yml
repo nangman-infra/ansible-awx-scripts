@@ -1,32 +1,63 @@
 ---
-- name: ClamAV teleport설치 및 log lotate 설정(30일)
+- name: ClamAV 설치 및 log rotate 설정(30일)
   hosts: all
   become: yes
-
   tasks:
-    #  ClamAV 설치
-    - name: ClamAV Install (Ubuntu)
+    # ── ClamAV 설치 ──────────────────────────────────────────────
+    - name: ClamAV Install (apt 계열)
       apt:
         name: [clamav, clamav-daemon]
         state: present
         update_cache: yes
-      when: ansible_os_family == "Debian"
-
-    - name: ClamAV Install (RHEL)
+      when: ansible_pkg_mgr == "apt"
+ 
+    - name: ClamAV Install (dnf 계열)
       dnf:
         name: [clamav, clamd, clamav-update]
         state: present
-      when: ansible_os_family == "RedHat"
-
-    #  바이러스 관련 db 업데이트 설정
-    - name: Freshclam 가동
+      when: ansible_pkg_mgr == "dnf"
+ 
+    # ── 바이러스 DB 업데이트(freshclam) ─────────────────────────
+    - name: Freshclam 가동 (apt 계열)
       service:
         name: clamav-freshclam
         state: started
         enabled: yes
+      when: ansible_pkg_mgr == "apt"
 
-    #  로그 로테이트 설정 (최대 30일까지 압축되게 설정)
-    - name: logroate
+    - name: Freshclam 최초 업데이트 (dnf 계열)
+      command: freshclam
+      register: freshclam_result
+      changed_when: "'Database updated' in freshclam_result.stdout"
+      failed_when: false  
+      when: ansible_pkg_mgr == "dnf"
+ 
+    # ── clamd 데몬 구동 ─────────────────────────────────────────
+    - name: clamd 가동 (apt 계열)
+      service:
+        name: clamav-daemon
+        state: started
+        enabled: yes
+      when: ansible_pkg_mgr == "apt"
+ 
+    - name: clamd 가동 (dnf 계열)
+      service:
+        name: clamd@scan
+        state: started
+        enabled: yes
+      when: ansible_pkg_mgr == "dnf"
+ 
+    # ── 스캔 로그 저장 디렉터리 ─────────────────────────────────
+    - name: 스캔 로그 저장 디렉터리
+      file:
+        path: /var/log/clamav
+        state: directory
+        owner: clamav
+        group: clamav
+        mode: '0750'
+ 
+    # ── 로그 로테이트 설정 (최대 30일) ───────────────────
+    - name: logrotate 설정
       copy:
         dest: /etc/logrotate.d/clamav
         content: |
@@ -36,34 +67,24 @@
               compress
               delaycompress
               missingok
-              not_if_empty
+              notifempty
               create 0660 clamav clamav
           }
-
-    #  스캔 로그 
-    - name: 스캔 로그 저장 파일
-      file:
-        path: /var/log/clamav
-        state: directory
-        owner: clamav
-        group: clamav
-        mode: '0750'
-
-   # 03시 자동 스캔 (clamDscan 
-    - name: 03시 clamdscan 자동 스캔 
+ 
+    # ── 03시 자동 스캔 (clamdscan) ──────────────────────────────
+    - name: 03시 clamdscan 자동 스캔
       cron:
         name: "Daily Scan Result"
         minute: "0"
         hour: "3"
         job: >
-          nice -n 19 ionice -c 3 /usr/bin/clamdscan 
-          --multiscan 
-          --fdpass 
-          --quiet 
-          --log=/var/log/clamav/daily_scan.log 
-          --exclude-dir=/sys 
-          --exclude-dir=/proc 
-          --exclude-dir=/dev 
-          --exclude-dir=/var/lib/docker 
+          nice -n 19 ionice -c 3 /usr/bin/clamdscan
+          --multiscan
+          --fdpass
+          --quiet
+          --log=/var/log/clamav/daily_scan.log
+          --exclude-dir=/sys
+          --exclude-dir=/proc
+          --exclude-dir=/dev
+          --exclude-dir=/var/lib/docker
           /
-    
