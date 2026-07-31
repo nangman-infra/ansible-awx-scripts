@@ -44,12 +44,12 @@
       ansible.builtin.command: /usr/local/bin/psi_mem.sh full avg60
       register: psi_check
       changed_when: false
-      when: psi_stat.stat.exists
+      when: psi_stat.stat.exists and not ansible_check_mode
 
     - name: 검증 결과 출력
       ansible.builtin.debug:
         msg: "{{ inventory_hostname }} → PSI full avg60 = {{ psi_check.stdout }}"
-      when: psi_stat.stat.exists
+      when: psi_stat.stat.exists and not ansible_check_mode
 
   handlers:
     - name: Zabbix Agent 2 재시작
