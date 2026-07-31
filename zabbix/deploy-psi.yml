@@ -1,0 +1,58 @@
+---
+- name: PSI 메모리 수집 배포 (Zabbix Agent 2 UserParameter)
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: PSI 지원 여부 확인 (/proc/pressure/memory)
+      ansible.builtin.stat:
+        path: /proc/pressure/memory
+      register: psi_stat
+
+    - name: PSI 미지원 호스트 알림 (건너뜀)
+      ansible.builtin.debug:
+        msg: "PSI 미지원 → 건너뜀: {{ inventory_hostname }}"
+      when: not psi_stat.stat.exists
+
+    - name: PSI 추출 스크립트 배포 (/usr/local/bin/psi_mem.sh)
+      ansible.builtin.copy:
+        dest: /usr/local/bin/psi_mem.sh
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          # $1 = some|full, $2 = avg10|avg60|avg300|total
+          awk -v line="$1" -v field="$2" \
+            '$0 ~ "^"line {for(i=1;i<=NF;i++){split($i,a,"=");if(a[1]==field)print a[2]}}' \
+            /proc/pressure/memory
+      when: psi_stat.stat.exists
+
+    - name: Zabbix Agent 2 UserParameter 배포 (psi.conf)
+      ansible.builtin.copy:
+        dest: /etc/zabbix/zabbix_agent2.d/psi.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          UserParameter=psi.memory[*], /usr/local/bin/psi_mem.sh "$1" "$2"
+      when: psi_stat.stat.exists
+      notify: Zabbix Agent 2 재시작
+
+    - name: PSI 값 수집 검증 (full avg60)
+      ansible.builtin.command: /usr/local/bin/psi_mem.sh full avg60
+      register: psi_check
+      changed_when: false
+      when: psi_stat.stat.exists
+
+    - name: 검증 결과 출력
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} → PSI full avg60 = {{ psi_check.stdout }}"
+      when: psi_stat.stat.exists
+
+  handlers:
+    - name: Zabbix Agent 2 재시작
+      ansible.builtin.service:
+        name: zabbix-agent2
+        state: restarted
