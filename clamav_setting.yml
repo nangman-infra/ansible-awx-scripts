@@ -88,3 +88,9 @@
           --exclude-dir=/dev
           --exclude-dir=/var/lib/docker
           /
+
+    # 기존 clamscan과 clamdscan 중복 설정되어있는 개인 서버들은 clamscan 삭제
+    - name: 중복 clamscan cron 제거
+      cron:
+        name: "Daily ClamAV Scan"
+        state: absent
