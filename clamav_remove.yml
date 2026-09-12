@@ -1,0 +1,58 @@
+---
+- name: ClamAV 완전 제거
+  hosts: all
+  become: yes
+  tasks:
+    - name: clamdscan cron 제거
+      cron:
+        name: "Daily Scan Result"
+        state: absent
+
+    - name: clamscan cron 제거
+      cron:
+        name: "Daily ClamAV Scan"
+        state: absent
+
+    - name: clamd 중지 (apt 계열)
+      service:
+        name: clamav-daemon
+        state: stopped
+        enabled: no
+      when: ansible_pkg_mgr == "apt"
+      ignore_errors: yes
+
+    - name: freshclam 중지 (apt 계열)
+      service:
+        name: clamav-freshclam
+        state: stopped
+        enabled: no
+      when: ansible_pkg_mgr == "apt"
+      ignore_errors: yes
+
+    - name: ClamAV 패키지 제거 (apt 계열)
+      apt:
+        name: [clamav, clamav-daemon, clamav-freshclam, clamav-base]
+        state: absent
+        purge: yes
+      when: ansible_pkg_mgr == "apt"
+
+    - name: ClamAV 패키지 제거 (dnf 계열)
+      dnf:
+        name: [clamav, clamd, clamav-update]
+        state: absent
+      when: ansible_pkg_mgr == "dnf"
+
+    - name: 로그 디렉토리 제거
+      file:
+        path: /var/log/clamav
+        state: absent
+
+    - name: logrotate 설정 제거
+      file:
+        path: /etc/logrotate.d/clamav
+        state: absent
+
+    - name: 시그니처 DB 제거
+      file:
+        path: /var/lib/clamav
+        state: absent
